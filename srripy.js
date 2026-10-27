@@ -1,4 +1,33 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+
+// =====================================
+// WEBORA - FIREBASE CONFIGURATION
+// =====================================
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBEL0YdPvSzccNyC0KSFDGmrWuaJh12yGY",
+  authDomain: "webora-813f2.firebaseapp.com",
+  projectId: "webora-813f2",
+  storageBucket: "webora-813f2.firebasestorage.app",
+  messagingSenderId: "530393451146",
+  appId: "1:530393451146:web:6f0c0aa4d652c9c283bb73",
+  measurementId: "G-JYBXX1JYYZ"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
 document.addEventListener("DOMContentLoaded", function () {
+
   // =====================================
   // WEBORA - MAIN SETTINGS
   // =====================================
@@ -290,69 +319,19 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
+ 
+ // =====================================
+  // FIREBASE SIGN-IN / CREATE ACCOUNT
   // =====================================
-  // SIGN-IN / CREATE ACCOUNT TABS
-  // =====================================
 
-  function setAccountMode(mode) {
-    accountMode = mode;
-
-    const isSignup = mode === "signup";
-
-    if (accountTitle) {
-      accountTitle.textContent = isSignup
-        ? "Create Your Webora Account"
-        : "Sign In to Webora";
-    }
-
-    if (nameField) {
-      nameField.hidden = !isSignup;
-      nameField.style.display = isSignup ? "" : "none";
-    }
-
-    if (accountName) {
-      accountName.required = isSignup;
-    }
-
-    if (accountPassword) {
-      accountPassword.autocomplete = isSignup
-        ? "new-password"
-        : "current-password";
-    }
-
-    if (signinTab) {
-      signinTab.classList.toggle("active", !isSignup);
-      signinTab.setAttribute("aria-pressed", String(!isSignup));
-    }
-
-    if (signupTab) {
-      signupTab.classList.toggle("active", isSignup);
-      signupTab.setAttribute("aria-pressed", String(isSignup));
-    }
-
-    hideMessage(accountMessage);
-  }
-
-  if (signinTab) {
-    signinTab.addEventListener("click", function () {
-      setAccountMode("signin");
-    });
-  }
-
-  if (signupTab) {
-    signupTab.addEventListener("click", function () {
-      setAccountMode("signup");
-    });
-  }
-
-  // Demo account form: this does NOT create a real account.
   if (accountForm) {
-    accountForm.addEventListener("submit", function (event) {
+    accountForm.addEventListener("submit", async function (event) {
       event.preventDefault();
 
       if (!accountForm.reportValidity()) return;
 
       const email = accountEmail ? accountEmail.value.trim() : "";
+      const password = accountPassword ? accountPassword.value : "";
       const name = accountName ? accountName.value.trim() : "";
 
       if (accountMode === "signup" && !name) {
@@ -360,30 +339,85 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
       }
 
-      demoCustomer = {
-        name: name,
-        email: email
-      };
-
-      if (customerName && name) {
-        customerName.value = name;
-      }
-
-      if (customerEmail) {
-        customerEmail.value = email;
-      }
-
-      if (orderService) {
-        orderService.value = selectedService;
-      }
-
-      hideModal(accountModal);
-      showModal(orderModal);
-
-      showMessage(
-        orderMessage,
-        "Demo only: this is not a real account. Please complete your order details."
+      const submitButton = accountForm.querySelector(
+        'button[type="submit"], input[type="submit"]'
       );
+
+      if (submitButton) submitButton.disabled = true;
+
+      try {
+        let userCredential;
+
+        if (accountMode === "signup") {
+          userCredential = await createUserWithEmailAndPassword(
+            auth,
+            email,
+            password
+          );
+
+          await updateProfile(userCredential.user, {
+            displayName: name
+          });
+        } else {
+          userCredential = await signInWithEmailAndPassword(
+            auth,
+            email,
+            password
+          );
+        }
+
+        const user = userCredential.user;
+
+        demoCustomer = {
+          name: user.displayName || name || "",
+          email: user.email || email
+        };
+
+        if (customerName) {
+          customerName.value = demoCustomer.name;
+        }
+
+        if (customerEmail) {
+          customerEmail.value = demoCustomer.email;
+        }
+
+        if (orderService) {
+          orderService.value = selectedService;
+        }
+
+        hideMessage(accountMessage);
+        hideModal(accountModal);
+        showModal(orderModal);
+
+        showMessage(
+          orderMessage,
+          "You are signed in successfully. Please complete your order details."
+        );
+
+      } catch (error) {
+        let message = "Something went wrong. Please try again.";
+
+        if (error.code === "auth/email-already-in-use") {
+          message = "This email already has an account. Please sign in.";
+        } else if (error.code === "auth/invalid-email") {
+          message = "Please enter a valid email address.";
+        } else if (error.code === "auth/weak-password") {
+          message = "Password must contain at least 6 characters.";
+        } else if (
+          error.code === "auth/invalid-credential" ||
+          error.code === "auth/wrong-password" ||
+          error.code === "auth/user-not-found"
+        ) {
+          message = "Email or password is incorrect.";
+        } else if (error.code === "auth/too-many-requests") {
+          message = "Too many attempts. Please try again later.";
+        }
+
+        showMessage(accountMessage, message);
+
+      } finally {
+        if (submitButton) submitButton.disabled = false;
+      }
     });
   }
 
