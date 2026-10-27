@@ -319,7 +319,62 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
- 
+  // =====================================
+  // SIGN-IN / CREATE ACCOUNT TABS
+  // =====================================
+
+  function setAccountMode(mode) {
+    accountMode = mode;
+
+    const isSignup = mode === "signup";
+
+    if (accountTitle) {
+      accountTitle.textContent = isSignup
+        ? "Create Your Webora Account"
+        : "Sign In to Webora";
+    }
+
+    if (nameField) {
+      nameField.hidden = !isSignup;
+      nameField.style.display = isSignup ? "" : "none";
+    }
+
+    if (accountName) {
+      accountName.required = isSignup;
+    }
+
+    if (accountPassword) {
+      accountPassword.autocomplete = isSignup
+        ? "new-password"
+        : "current-password";
+    }
+
+    if (signinTab) {
+      signinTab.classList.toggle("active", !isSignup);
+      signinTab.setAttribute("aria-pressed", String(!isSignup));
+    }
+
+    if (signupTab) {
+      signupTab.classList.toggle("active", isSignup);
+      signupTab.setAttribute("aria-pressed", String(isSignup));
+    }
+
+    hideMessage(accountMessage);
+  }
+
+  if (signinTab) {
+    signinTab.addEventListener("click", function () {
+      setAccountMode("signin");
+    });
+  }
+
+  if (signupTab) {
+    signupTab.addEventListener("click", function () {
+      setAccountMode("signup");
+    });
+  }
+
+  
  // =====================================
   // FIREBASE SIGN-IN / CREATE ACCOUNT
   // =====================================
