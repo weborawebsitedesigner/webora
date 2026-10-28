@@ -533,23 +533,80 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
   }
-
-  // =====================================
-  // ORDER FORM - FRONTEND DEMO
+// =====================================
+  // ORDER FORM - EMAILJS
   // =====================================
 
   if (orderForm) {
-    orderForm.addEventListener("submit", function (event) {
+    orderForm.addEventListener("submit", async function (event) {
       event.preventDefault();
 
       if (!orderForm.reportValidity()) return;
 
-      showMessage(
-        orderMessage,
-        "Your order details are ready, but this website is currently a frontend demo. No order has been sent or saved. A backend or email service is needed to receive real orders."
+      const submitButton = orderForm.querySelector(
+        'button[type="submit"], input[type="submit"]'
       );
+
+      if (submitButton) submitButton.disabled = true;
+
+      try {
+        const emailjsModule = await import(
+          "https://cdn.jsdelivr.net/npm/@emailjs/browser@4/+esm"
+        );
+
+        const emailjs = emailjsModule.default || emailjsModule;
+
+        const formData = new FormData(orderForm);
+
+        const orderDetails = Array.from(formData.entries())
+          .map(([key, value]) => ${key}: ${value})
+          .join("\n");
+
+        const customer = {
+          customer_name:
+            customerName?.value?.trim() ||
+            demoCustomer?.name ||
+            "Not provided",
+
+          customer_email:
+            customerEmail?.value?.trim() ||
+            demoCustomer?.email ||
+            "",
+
+          service_name:
+            orderService?.value ||
+            selectedService ||
+            "Webora Service",
+
+          order_details: orderDetails || "No additional details"
+        };
+
+        await emailjs.send(
+          "service_yp2ogg8",
+          "template_bslt39w",
+          customer,
+          "o3TJjuAEMk23ZILyS"
+        );
+
+        showMessage(
+          orderMessage,
+          "Your order has been sent successfully! We will contact you regarding pricing and payment."
+        );
+
+      } catch (error) {
+        console.error("EmailJS order error:", error);
+
+        showMessage(
+          orderMessage,
+          "Your order email could not be sent. Please check your EmailJS settings and try again."
+        );
+
+      } finally {
+        if (submitButton) submitButton.disabled = false;
+      }
     });
   }
+ 
 
   // =====================================
   // CURRENT YEAR
