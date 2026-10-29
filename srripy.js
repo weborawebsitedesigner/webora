@@ -559,7 +559,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const formData = new FormData(orderForm);
 
         const orderDetails = Array.from(formData.entries())
-          .map(([key, value]) => ${key}: ${value})
+          .map(([key, value]) => `${key}: ${value}`)
           .join("\n");
 
         const customer = {
